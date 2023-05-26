@@ -1,0 +1,262 @@
+#!/usr/bin/env python3
+import rospy
+import numpy as np
+import control as ct
+from scipy import linalg
+
+from MCSimPython.control.basic import PID
+
+from std_msgs.msg import Float64MultiArray
+
+
+vessel_name = "CSEI"
+
+
+class Controller (object):
+    def __init__(self, dt=0.01) -> None:
+        self.kp = np.array([25.0, 25.0, 8.])*0.05  # Proportional gain
+        self.kd = np.array([14, 15, 2.])*2.4  # Derivative gain
+        self.ki = np.array([10, 5, .4])*0.007   # Integral gain
+
+        self.pid = PID(kp=self.kp, kd=self.kd,
+                       ki=self.ki, dt=dt)  # gains from MCSimPython package
+
+        self.tau = np.zeros((3,1))  # Command forces [surge, sway, yaw]
+        self.eta = np.zeros((3,1))  # Pose, attitude [surge, sway, yaw]
+        self.nu = np.zeros((3,1))   # Velocity [surge, sway, yaw]
+
+        self.eta_d = np.zeros((3,1))  # Desired pose, attitude [surge, sway, yaw]
+        self.nu_d = np.zeros((3,1))   # Desired velocity [surge, sway, yaw]
+
+        # CSE parameters
+        X_u = -0.6555
+        Y_v = -1.33
+        N_r = -1.900
+        self.D0 = -np.array([[X_u, 0, 0], [0, Y_v, 0],
+                             [0, 0, N_r]])
+        self.M0 = np.array([[16.11, 0.0, 0.0], 
+                           [0.0, 24.11, 0.5291], 
+                           [0.0, 0.5291, 2.7600]]) 
+
+
+        ### General variables ###
+        self.nu_ref = np.zeros((3, 1))
+        self.nu_cmd = np.zeros((3, 1))
+        self.nu_cmd_old = np.zeros((3, 1))
+        self.nu_cmd_dot = np.zeros((3, 1))
+        self.nu_cmd_dot_old = np.zeros((3, 1))
+        self.nu_nom = np.zeros((3, 1))
+
+        self.dt = 0.01
+        self.Ts = 0.01
+
+
+        ### MRAC ###
+        # State matrix etc.
+        self.A = -np.linalg.inv(self.M0) @ self.D0  # 3x3
+        self.B = np.linalg.inv(self.M0)  # 3x3
+
+        # K LQR:
+        self.Qk = np.diag([1, 1, 1])
+        self.Rk = np.diag([1, 1, 1])
+        PK = linalg.solve_continuous_are(
+            self.A, self.B, self.Qk, self.Rk)
+        self.K_LQR = np.linalg.inv(self.Rk) @ self.B.T @ PK  # 3x3
+        #self.K_LQR = np.array([[7.285, 0, 0], [0, 4.311, 0.036], [0, -0.027, 0.21]])
+
+
+        # Reference model
+        self.A_ref = self.A - self.B @ self.K_LQR  # 3x3
+        self.Q = np.diag([1, 1, 1])
+        self.P_ref = ct.lyap(self.A_ref, self.Q)  # 3x3
+
+        # Parameters
+        self.K_hat = np.zeros((3, 3))
+
+        # self.K_hat = np.array([[0.004, 0, 0], [0, Y_v, 0],
+        #                           [0, 0, N_r]])
+        self.Lambda = np.identity(3)
+        self.b = np.zeros((3, 1))
+        #self.b = np.array([[]])
+
+        # Observer-like reference model parameters
+        self.sigma = 1  # 1 to enable state feedback in reference filter, 0 to disable
+        self.ep = 10
+        self.Q_ep = self.Q + (self.ep + 1) / self.ep * np.identity(3)
+        self.R_ep = self.ep / (self.ep + 1) * np.identity(3)
+        self.P_ep = linalg.solve_continuous_are(
+            self.A_ref, self.sigma * np.identity(3), self.Q_ep, self.R_ep)
+
+        self.L_ep = self.sigma * self.P_ep @ np.linalg.inv(self.R_ep)
+
+        # Update law parameters
+        # self.Gamma_K = 25*10**(-3)*np.diag([1, 1, 1])
+        self.Gamma_K = 25 * np.diag([1, 1, 1])
+        #self.Gamma_K = 30*15*25 * np.diag([1, 1, 1])
+        #self.Gamma_K = 10**-(5)*30*15*25 * np.diag([1, 1, 1])
+
+        # self.Gamma_b = 50*10**(-3)*np.diag([1, 1, 1])
+        self.Gamma_b = 50 * np.diag([1, 1, 1])
+        #self.Gamma_b = 30*15*50 * np.diag([1, 1, 1])
+        self.Gamma_L = 1 * np.diag([1, 1, 1])
+        self.K_hat = np.zeros((3, 3))
+        #self.K_hat = np.array([[-4.2, 0.05, 1.1], [-0.57, -0.015, 0.15],
+        #                       [-0.01, 0.064, 0.13]])
+        #self.K_hat = np.array([[-5.4, 0.3, 2.1], [-0.73, 0.01, 0.29],
+        #                       [-0.05, 0.0715, 0.155]])
+        self.b_hat = np.zeros((3, 1))
+
+        ### BASELINE ###
+        # State matrix etc.
+        self.A1 = np.block([[np.zeros((3, 3)), np.eye(3)], [
+            np.zeros((3, 3)), -np.linalg.inv(self.M0) @ self.D0]])  # 6x6
+        self.B1 = np.block(
+            [[np.zeros((3, 3))], [np.linalg.inv(self.M0)]])  # 6x3
+
+        # Baseline LQR
+        self.Qk1 = np.diag([1, 1, 1, 1, 1, 1])
+        self.Rk1 = np.diag([1, 1, 1])
+        PK1 = linalg.solve_continuous_are(
+            self.A1, self.B1, self.Qk1, self.Rk1)
+        self.K_LQR1 = np.linalg.inv(self.Rk1) @ self.B1.T @ PK1  # 6x3
+        self.Ki = self.K_LQR1[:, [0, 1, 2]]  # 3x3
+        self.Kp = self.K_LQR1[:, [3, 4, 5]]  # 3x3
+
+
+
+        # Publishers/Subscribers
+        self.odom_sub = rospy.Subscriber(
+            f"/{vessel_name}/observer_states_smallGain", Float64MultiArray, self.observerCallback, queue_size=1)  # Odometry subscriber
+        # Desired state subscriber
+        #self.desiredState_sub = rospy.Subscriber(
+        #    f"/{vessel_name}/reference", Float64MultiArray, self.referenceCallback, queue_size=1)
+        self.gains_sub = rospy.Subscriber(
+            f"/{vessel_name}/pid_gains", Float64MultiArray, self.gainsCallback, queue_size=1)
+        self.nu_cmd_sub = rospy.Subscriber(f"/{vessel_name}/nu_cmd", Float64MultiArray, self.nucmdCallback, queue_size=1)
+        self.tau_cmd_pub = rospy.Publisher(
+            f"/{vessel_name}/tau_cmd", Float64MultiArray, queue_size=1) 
+        self.Khat_pub = rospy.Publisher(
+            f"/{vessel_name}/K_hat", Float64MultiArray, queue_size=1) 
+        self.bhat_pub = rospy.Publisher(f"/{vessel_name}/b_hat", Float64MultiArray, queue_size=1)
+
+        # Messages
+        self.tau_cmd_msg = Float64MultiArray()  # command forces [surge, sway, yaw]
+        self.Khat_msg = Float64MultiArray() 
+        self.bhat_msg = Float64MultiArray() 
+
+    def gainsCallback(self, msg):
+        self.pid.set_kp([msg.data[0], msg.data[1], msg.data[2]])
+        self.pid.set_ki([msg.data[3], msg.data[4], msg.data[5]])
+        self.pid.set_kd([msg.data[6], msg.data[7], msg.data[8]])
+
+    def observerCallback(self, msg):
+        """
+            Callback function for odometry message. Updating position and attitude of vessel.
+        """
+        self.eta = np.array([[msg.data[0]], [msg.data[1]], [msg.data[2]]])
+        self.nu = np.array([[msg.data[3]], [msg.data[4]], [msg.data[5]]])
+        
+    #def referenceCallback(self, msg):
+    #   """
+    #        Callback function for desired state message. Updating desired position/attitude and linear/angular velocity of vessel.
+    #    """
+    #    self.eta_d = np.array(msg.data[0:3])
+    #    self.nu_d = np.array(msg.data[3:6])
+
+    def nucmdCallback(self, msg):
+        """
+            Callback function for nu_cmd message. Updating desired surge/sway velocity and yaw rate of vessel.
+        """
+        self.nu_cmd = np.array([msg.data]).T
+
+
+    def update(self, tracking_method):
+        """
+            Calculate desired forces. [surge, sway, yaw]
+        """
+        # Calculate desired forces
+        #self.tau = self.pid.get_tau(self.eta, self.eta_d, self.nu, self.nu_d)   
+        if tracking_method == 0:
+            self.tau = self.baseline_velocity_tracking()
+        elif tracking_method == 1:
+            self.tau = self.MRAC_velocity_tracking_NR()
+
+
+    def publishTau(self):
+        """
+            Publish desired forces. [surge, sway, yaw]
+        """
+        tau = [self.tau[0][0], self.tau[1][0], self.tau[2][0]]
+        self.tau_cmd_msg.data = tau
+        self.tau_cmd_pub.publish(self.tau_cmd_msg)
+
+    def publishAdaptiveGains(self):
+        """
+            Publish adaptive gains
+        """
+        Khat = [self.K_hat[0][0], self.K_hat[0][1], self.K_hat[0][2], self.K_hat[1][0], self.K_hat[1][1], self.K_hat[1][2], self.K_hat[2][0], self.K_hat[2][1], self.K_hat[2][2]]
+        self.Khat_msg.data = Khat
+        self.Khat_pub.publish(self.Khat_msg)
+
+        bhat = [self.b_hat[0][0], self.b_hat[1][0], self.b_hat[2][0]]
+        self.bhat_msg.data = bhat
+        self.bhat_pub.publish(self.bhat_msg)
+
+    def baseline_velocity_tracking(self):
+        self.e = self.nu - self.nu_cmd
+        self.xi = self.xi + self.Ts * self.e
+
+        tau = -self.Kp @ self.e - self.Ki @ self.xi + self.D0 @ self.nu_cmd + self.M0 @ self.nu_cmd_dot
+
+        return tau
+
+    def MRAC_velocity_tracking_NR(self):
+        self.e = self.nu - self.nu_ref  # Note, self.e in the MRAC is not the same as self.e in baseline controller
+        print("")
+        print("self.nu    :", round(self.nu[0][0], 3), round(self.nu[1][0], 3), round(self.nu[2][0], 3) )
+        print("self.nu_ref:", round(self.nu_ref[0][0], 3), round(self.nu_ref[1][0], 3), round(self.nu_ref[2][0], 3) )
+        nu_ref_dot = self.A_ref @ (self.nu_ref - self.nu_cmd) + self.nu_cmd_dot + self.L_ep @ (self.nu - self.nu_ref)
+        self.nu_ref = self.nu_ref + self.dt * nu_ref_dot
+
+        # Control law
+        tau_bl = -self.K_LQR @ self.e + self.D0 @ self.nu_cmd + self.M0 @ self.nu_cmd_dot 
+        tau_ad = -self.K_hat @ tau_bl - self.b_hat
+
+        tau = tau_bl + tau_ad
+
+        # Update laws
+        K_hat_transpose_dot = self.Gamma_K @ tau_bl @ self.e.T @ np.linalg.inv(self.P_ep) @ np.linalg.inv(self.M0)
+        K_hat_transpose = self.K_hat.T + self.Ts * K_hat_transpose_dot
+        self.K_hat = K_hat_transpose.T
+
+        b_hat_dot = self.Gamma_b @ (np.linalg.inv(self.P_ep) @ np.linalg.inv(
+            self.M0)).T @ self.e 
+        self.b_hat = self.b_hat + self.Ts * b_hat_dot
+
+        return tau
+
+
+if __name__ == '__main__':
+    rospy.init_node("controller")
+    rospy.loginfo(f"INITIALIZING {vessel_name} PID CONTROLLER NODE")
+    r = rospy.Rate(100)
+    dt = 0.01  # Timestep corresponding to sampling frequency of 100 Hz
+
+    tracking_method = 1 # 0: baseline, 1: MRAC
+    # initialize reference model
+    controller = Controller(dt=dt)
+
+    while not rospy.is_shutdown():
+        
+        # calculate command forces
+        controller.update(tracking_method)
+
+        # publish command forces
+        controller.publishTau()
+
+        # publish adaptive gains
+        controller.publishAdaptiveGains()
+
+        r.sleep()
+
+    rospy.spin()

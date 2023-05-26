@@ -1,0 +1,8 @@
+prefix=/home/dplab6/magnus_ws/devel
+
+Name: guidance
+Description: Description of guidance
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib -lguidance
+Requires: rospy std_msgs

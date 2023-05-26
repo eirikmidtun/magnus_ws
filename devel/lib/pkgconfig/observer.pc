@@ -1,0 +1,8 @@
+prefix=/home/dplab6/magnus_ws/devel
+
+Name: observer
+Description: Description of observer
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib -lobserver
+Requires: rospy std_msgs nav_msgs

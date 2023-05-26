@@ -1,0 +1,8 @@
+prefix=/home/dplab6/magnus_ws/devel
+
+Name: thrust_allocator
+Description: Description of thrust_allocator
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib -lthrust_allocator
+Requires: rospy std_msgs
