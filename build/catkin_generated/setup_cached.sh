@@ -7,4 +7,5 @@
 # new environment variables
 
 # modified environment variables
-export PWD='/home/mkvebaek/magnus_ws/build'
+export PWD='/home/dplab6/magnus_ws/build'
+export PYTHONPATH="/home/dplab6/magnus_ws/devel/lib/python3/dist-packages:$PYTHONPATH"

@@ -4,6 +4,7 @@ import numpy as np
 import math
 
 from std_msgs.msg import Float64MultiArray
+from sensor_msgs.msg import Joy
 
 
 def rad2pipi(x):  # Maps angle from (-inf, inf) to [-pi, pi)
@@ -17,7 +18,11 @@ class PATH:
         self.eta_d_dt = np.zeros(3)
             #eta_d_dt2 = np.zeros(3)
 
+        
+        self.test = ""
+
         self.pub = rospy.Publisher(f"/{vessel_name}/reference", Float64MultiArray, queue_size=1)
+        self.joy_sub = rospy.Subscriber(f"/joy", Joy, self.joyCallback, queue_size=1)
         self.pathgen_msg = Float64MultiArray()
 
 
@@ -71,6 +76,7 @@ class PATH:
         eta_d = np.array([eta_d]).T
         eta_d_dt = np.array([eta_d_dt]).T
         #eta_d_dt2 = np.array([eta_d_dt2]).T
+            y.eta_d = [2.0, 0.0, 0]
         eta_ds = np.array([eta_ds]).T
         #eta_ds2 = np.array([eta_ds2]).T
         """
@@ -158,7 +164,17 @@ class PATH:
 
 
         #return eta_d, eta_d_dt, eta_d_dt2, eta_ds, eta_ds2
-   
+
+    def joyCallback(self, msg):
+        if msg.axes[10] == 1:
+            self.test = "circle"
+            rospy.logwarn_once("circle")
+        elif msg.axes[10] == -1:
+            self.test = "stop"
+            rospy.logwarn_once("stop")
+
+        
+
 
     def publish(self):
         self.pathgen_msg.data = [self.eta_d[0], self.eta_d[1], self.eta_d[2], self.eta_d_dt[0], self.eta_d_dt[1], self.eta_d_dt[2]]
@@ -168,7 +184,7 @@ class PATH:
 
 if __name__ == '__main__':
     vessel_name = "CSEI"
-    rospy.init_node(f"{vessel_name}_guidance_node")
+    rospy.init_node(f"{vessel_name}_guidanceand path_type == 1_node")
     rospy.loginfo(f"INITIALIZING {vessel_name} guidance NODE")
     r = rospy.Rate(100)
     # Initialize
@@ -179,24 +195,19 @@ if __name__ == '__main__':
     if path_type == 1:
         y.s = 0.5
 
+    # start point
+    y.eta_d = [2.25, -0.1, 0]
+
     y.t0 = rospy.get_time()
     while not rospy.is_shutdown():
         t = rospy.get_time()
-
-        if path_type == 0:
+        if y.test == "straightline":
             y.nom_straightline_path()
-        if path_type == 1:
+        if y.test == "circle":
             y.nom_ellipsoidal_path()
-
-        if t-y.t0 < 80 and path_type == 1:
-            y.s = 0.5
+        if y.test == "stop":
             y.eta_d = [2.25, -0.1, 0]
-            y.eta_d_dt = np.zeros(3)
-
-        if t-y.t0 < 80 and path_type == 0:
-            y.s = 0.5
-            y.eta_d = [2.0, 0.0, 0]
-            y.eta_d_dt = np.zeros(3)
+            y.eta_d_dt = [0, 0, 0]
 
 
         # Publish message

@@ -67,14 +67,14 @@ set(guidance_CONFIG_INCLUDED TRUE)
 
 # set variables for source/devel/install prefixes
 if("FALSE" STREQUAL "TRUE")
-  set(guidance_SOURCE_PREFIX /home/mkvebaek/magnus_ws/src/guidance)
-  set(guidance_DEVEL_PREFIX /home/mkvebaek/magnus_ws/devel)
+  set(guidance_SOURCE_PREFIX /home/dplab6/magnus_ws/src/guidance)
+  set(guidance_DEVEL_PREFIX /home/dplab6/magnus_ws/devel)
   set(guidance_INSTALL_PREFIX "")
   set(guidance_PREFIX ${guidance_DEVEL_PREFIX})
 else()
   set(guidance_SOURCE_PREFIX "")
   set(guidance_DEVEL_PREFIX "")
-  set(guidance_INSTALL_PREFIX /home/mkvebaek/magnus_ws/install)
+  set(guidance_INSTALL_PREFIX /home/dplab6/magnus_ws/install)
   set(guidance_PREFIX ${guidance_INSTALL_PREFIX})
 endif()
 
@@ -154,7 +154,7 @@ foreach(library ${libraries})
     set(lib_path "")
     set(lib "${library}-NOTFOUND")
     # since the path where the library is found is returned we have to iterate over the paths manually
-    foreach(path /home/mkvebaek/magnus_ws/install/lib;/home/mkvebaek/magnus_ws/devel/lib;/home/mkvebaek/mkvebaek_ws/devel/lib;/opt/ros/noetic/lib)
+    foreach(path /home/dplab6/magnus_ws/install/lib;/home/dplab6/magnus_ws/devel/lib;/home/dplab6/Wave-Model/ros_ws/devel/lib;/opt/ros/noetic/lib)
       find_library(lib ${library}
         PATHS ${path}
         NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)

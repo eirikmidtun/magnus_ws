@@ -67,14 +67,14 @@ set(observer_CONFIG_INCLUDED TRUE)
 
 # set variables for source/devel/install prefixes
 if("FALSE" STREQUAL "TRUE")
-  set(observer_SOURCE_PREFIX /home/mkvebaek/magnus_ws/src/observer)
-  set(observer_DEVEL_PREFIX /home/mkvebaek/magnus_ws/devel)
+  set(observer_SOURCE_PREFIX /home/dplab6/magnus_ws/src/observer)
+  set(observer_DEVEL_PREFIX /home/dplab6/magnus_ws/devel)
   set(observer_INSTALL_PREFIX "")
   set(observer_PREFIX ${observer_DEVEL_PREFIX})
 else()
   set(observer_SOURCE_PREFIX "")
   set(observer_DEVEL_PREFIX "")
-  set(observer_INSTALL_PREFIX /home/mkvebaek/magnus_ws/install)
+  set(observer_INSTALL_PREFIX /home/dplab6/magnus_ws/install)
   set(observer_PREFIX ${observer_INSTALL_PREFIX})
 endif()
 
@@ -154,7 +154,7 @@ foreach(library ${libraries})
     set(lib_path "")
     set(lib "${library}-NOTFOUND")
     # since the path where the library is found is returned we have to iterate over the paths manually
-    foreach(path /home/mkvebaek/magnus_ws/install/lib;/home/mkvebaek/magnus_ws/devel/lib;/home/mkvebaek/mkvebaek_ws/devel/lib;/opt/ros/noetic/lib)
+    foreach(path /home/dplab6/magnus_ws/install/lib;/home/dplab6/magnus_ws/devel/lib;/home/dplab6/Wave-Model/ros_ws/devel/lib;/opt/ros/noetic/lib)
       find_library(lib ${library}
         PATHS ${path}
         NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)

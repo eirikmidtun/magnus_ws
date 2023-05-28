@@ -19,7 +19,7 @@ def Rzyx2D(psi):
     R = np.array([[math.cos(psi), -math.sin(psi)],
                   [math.sin(psi), math.cos(psi)]])
     return R
-
+80
 
 def Rzyx(psi):
     """
@@ -109,7 +109,7 @@ class Controller (object):
         self.Q = np.diag([1, 1, 1])
         self.P_ref = ct.lyap(self.A_ref, self.Q)  # 3x3
 
-        # Parameters
+        # Parameters80
         self.K_hat = np.zeros((3, 3))
 
         # self.K_hat = np.array([[0.004, 0, 0], [0, Y_v, 0],
@@ -160,6 +160,11 @@ class Controller (object):
         self.K_LQR1 = np.linalg.inv(self.Rk1) @ self.B1.T @ PK1  # 6x3
         self.Ki = self.K_LQR1[:, [0, 1, 2]]  # 3x3
         self.Kp = self.K_LQR1[:, [3, 4, 5]]  # 3x3
+
+        ###########################################################################################################
+        self.Kp = np.diag([40,20,1])*1.7
+        self.Ki = np.diag([2,2,1])*0.1
+        ###########################################################################################################
         self.xi = np.zeros((3,1))
 
 
@@ -301,14 +306,16 @@ class Controller (object):
             Kp = np.diag([0.05, 0.2, 0.2]) #Funker greit på både 1 og 2
             Kp = np.diag([0.05, 0.002, 0.0]) #startverdier
 
-            Kp = np.diag([0.025, 0.2, 0.2])
+            Kp = np.diag([0.1, 1, 0.1])*4
+
+
 
             #Kp = np.diag([0.00000001, 0.002, 0.05])
 
 
 
-        # Kp = np.diag([0.03, 0.1, 0.1])
-        # Kp = np.diag([0.03, 0.07, 0.15])
+            # Kp = np.diag([0.03, 0.1, 0.1])
+            # Kp = np.diag([0.03, 0.07, 0.15])
 
             pos_error = self.eta - self.eta_d
             print("self.eta:", self.eta)
@@ -422,7 +429,7 @@ class Controller (object):
         gamma = 0.2 #Fungerende gamma
         gamma = 0.25
         gamma = 0.2
-        gamma = 2
+        #gamma = 2
         alpha = gamma * B
         a = alpha
         b = -self.q.T @ Rzyx2D(psi)
@@ -483,8 +490,8 @@ if __name__ == '__main__':
     # initialize reference model
     controller = Controller(dt=dt)
 
-    controller.q = np.array([[1,0]]).T
-    controller.c = 4
+    controller.q = np.array([[-2.92,1.5]]).T
+    controller.c = -8.33
     t0 = rospy.get_time()
     #controller.eta_d = np.array([[0], [0], [0]])
     #controller.eta_d_dt = np.array([[0], [0], [0]])
@@ -498,7 +505,7 @@ if __name__ == '__main__':
         
         #controller.nu_cmd = np.array([[0.05], [0], [0]])
         
-        #controller.CBF_line2()
+        controller.CBF_line2()
         controller.find_des_vel()
         # calculate command forces
         controller.update(tracking_method)

@@ -1,4 +1,4 @@
-prefix=/home/mkvebaek/magnus_ws/install
+prefix=/home/dplab6/magnus_ws/install
 
 Name: simulator_CSE
 Description: Description of simulator_CSE

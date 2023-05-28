@@ -1,8 +1,8 @@
-# Install script for directory: /home/mkvebaek/magnus_ws/src/common_tools
+# Install script for directory: /home/dplab6/magnus_ws/src/common_tools
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/home/mkvebaek/magnus_ws/install")
+  set(CMAKE_INSTALL_PREFIX "/home/dplab6/magnus_ws/install")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -38,21 +38,21 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  include("/home/mkvebaek/magnus_ws/build/common_tools/catkin_generated/safe_execute_install.cmake")
+  include("/home/dplab6/magnus_ws/build/common_tools/catkin_generated/safe_execute_install.cmake")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/mkvebaek/magnus_ws/build/common_tools/catkin_generated/installspace/common_tools.pc")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/dplab6/magnus_ws/build/common_tools/catkin_generated/installspace/common_tools.pc")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/common_tools/cmake" TYPE FILE FILES
-    "/home/mkvebaek/magnus_ws/build/common_tools/catkin_generated/installspace/common_toolsConfig.cmake"
-    "/home/mkvebaek/magnus_ws/build/common_tools/catkin_generated/installspace/common_toolsConfig-version.cmake"
+    "/home/dplab6/magnus_ws/build/common_tools/catkin_generated/installspace/common_toolsConfig.cmake"
+    "/home/dplab6/magnus_ws/build/common_tools/catkin_generated/installspace/common_toolsConfig-version.cmake"
     )
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/common_tools" TYPE FILE FILES "/home/mkvebaek/magnus_ws/src/common_tools/package.xml")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/common_tools" TYPE FILE FILES "/home/dplab6/magnus_ws/src/common_tools/package.xml")
 endif()
 

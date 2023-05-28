@@ -4,5 +4,5 @@ PROJECT_PKG_CONFIG_INCLUDE_DIRS = "".split(';') if "" != "" else []
 PROJECT_CATKIN_DEPENDS = "rospy;std_msgs".replace(';', ' ')
 PKG_CONFIG_LIBRARIES_WITH_PREFIX = "-lcontroller".split(';') if "-lcontroller" != "" else []
 PROJECT_NAME = "controller"
-PROJECT_SPACE_DIR = "/home/mkvebaek/magnus_ws/install"
+PROJECT_SPACE_DIR = "/home/dplab6/magnus_ws/install"
 PROJECT_VERSION = "0.0.0"

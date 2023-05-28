@@ -1,8 +1,0 @@
-prefix=/home/mkvebaek/magnus_ws/install
-
-Name: cse_simulator
-Description: Description of cse_simulator
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

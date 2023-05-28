@@ -13,21 +13,21 @@ fi
 
 echo_and_run() { echo "+ $@" ; "$@" ; }
 
-echo_and_run cd "/home/mkvebaek/magnus_ws/src/common_tools"
+echo_and_run cd "/home/dplab6/magnus_ws/src/common_tools"
 
 # ensure that Python install destination exists
-echo_and_run mkdir -p "$DESTDIR/home/mkvebaek/magnus_ws/install/lib/python3/dist-packages"
+echo_and_run mkdir -p "$DESTDIR/home/dplab6/magnus_ws/install/lib/python3/dist-packages"
 
 # Note that PYTHONPATH is pulled from the environment to support installing
 # into one location when some dependencies were installed in another
 # location, #123.
 echo_and_run /usr/bin/env \
-    PYTHONPATH="/home/mkvebaek/magnus_ws/install/lib/python3/dist-packages:/home/mkvebaek/magnus_ws/build/lib/python3/dist-packages:$PYTHONPATH" \
-    CATKIN_BINARY_DIR="/home/mkvebaek/magnus_ws/build" \
+    PYTHONPATH="/home/dplab6/magnus_ws/install/lib/python3/dist-packages:/home/dplab6/magnus_ws/build/lib/python3/dist-packages:$PYTHONPATH" \
+    CATKIN_BINARY_DIR="/home/dplab6/magnus_ws/build" \
     "/usr/bin/python3" \
-    "/home/mkvebaek/magnus_ws/src/common_tools/setup.py" \
+    "/home/dplab6/magnus_ws/src/common_tools/setup.py" \
      \
-    build --build-base "/home/mkvebaek/magnus_ws/build/common_tools" \
+    build --build-base "/home/dplab6/magnus_ws/build/common_tools" \
     install \
     --root="${DESTDIR-/}" \
-    --install-layout=deb --prefix="/home/mkvebaek/magnus_ws/install" --install-scripts="/home/mkvebaek/magnus_ws/install/bin"
+    --install-layout=deb --prefix="/home/dplab6/magnus_ws/install" --install-scripts="/home/dplab6/magnus_ws/install/bin"

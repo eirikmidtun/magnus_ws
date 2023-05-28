@@ -1,4 +1,4 @@
-prefix=/home/mkvebaek/magnus_ws/devel
+prefix=/home/dplab6/magnus_ws/devel
 
 Name: launch
 Description: Description of launch
