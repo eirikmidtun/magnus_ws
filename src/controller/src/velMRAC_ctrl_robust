@@ -145,6 +145,16 @@ class Controller (object):
         #                       [-0.05, 0.0715, 0.155]])
         self.b_hat = np.zeros((3, 1))
 
+
+        ### MRAC Robustification variables ###
+        self.dz_delta = 0.5  # Dead-zone delta
+        self.dz_e0 = 0.5  # Dead-zone boundary layer
+        self.dz_enable = 1  # Dead-zone enable (1) or disable (0)
+        self.PR_eps = 1.0  # Projection activation layer
+        self.PR_b_max = 74  # 2*np.linalg.norm(self.Kpid)
+        self.PR_K_max = 74  # 2*np.linalg.norm(self.Kpid)
+
+
         ### BASELINE ###
         # State matrix etc.
         self.A1 = np.block([[np.zeros((3, 3)), np.eye(3)], [
@@ -168,7 +178,8 @@ class Controller (object):
         self.xi = np.zeros((3,1))
 
 
-        self.active = 0
+
+
 
 
         ### CBF ###
@@ -189,6 +200,8 @@ class Controller (object):
         self.constraint_active = False
         self.w_psi_d = 0.0
         self.old_w_psi_d = 0.0
+
+        self.active = 0
 
 
 
@@ -268,7 +281,7 @@ class Controller (object):
         if tracking_method == 0:
             self.tau = self.baseline_velocity_tracking()
         elif tracking_method == 1:
-            self.tau = self.MRAC_velocity_tracking_NR()
+            self.tau = self.MRAC_velocity_tracking_robust()
 
 
     def publishTau(self):
@@ -372,7 +385,6 @@ class Controller (object):
 
 
 
-
     def baseline_velocity_tracking(self):
         self.e = self.nu - self.nu_cmd
         self.xi = self.xi + self.Ts * self.e
@@ -381,7 +393,7 @@ class Controller (object):
 
         return tau
 
-    def MRAC_velocity_tracking_NR(self):
+    def MRAC_velocity_tracking_robust(self):
         self.e = self.nu - self.nu_ref  # Note, self.e in the MRAC is not the same as self.e in baseline controller
         print("")
         print("self.nu    :", round(self.nu[0][0], 3), round(self.nu[1][0], 3), round(self.nu[2][0], 3) )
@@ -395,6 +407,7 @@ class Controller (object):
 
         tau = tau_bl + tau_ad
 
+        """
         # Update laws
         K_hat_transpose_dot = self.Gamma_K @ tau_bl @ self.e.T @ np.linalg.inv(self.P_ep) @ np.linalg.inv(self.M0)
         K_hat_transpose = self.K_hat.T + self.Ts * K_hat_transpose_dot
@@ -403,6 +416,63 @@ class Controller (object):
         b_hat_dot = self.Gamma_b @ (np.linalg.inv(self.P_ep) @ np.linalg.inv(
             self.M0)).T @ self.e 
         self.b_hat = self.b_hat + self.Ts * b_hat_dot
+        """
+
+        #### Robustification ####
+        # Dead Zone Modification
+        mu = (np.linalg.norm(self.e)-self.dz_delta*self.dz_e0) / \
+            ((1-self.dz_delta)*self.dz_e0)
+        if mu >= 1:
+            mu = 1.0
+        elif mu <= 0:
+            print("deadzone active")
+            mu = 0.0
+
+        if self.dz_enable < 0.5:
+            mu = 1.0
+
+        # Update laws
+        # Projection operator K, Y = [y_K1, y_K2, y_K3], Theta = [K_hat_transpose[0], K_hat_transpose[1], K_hat_transpose[2]]
+        K_hat_transpose_dot = np.zeros((3, 3))
+        K_hat_transpose = self.K_hat.T
+        y_K = tau_bl@self.e.T@np.linalg.inv(self.P_ep)@np.linalg.inv(self.M0)
+        i = 0
+        for row in K_hat_transpose.T:  # For each column in K_hat_transpose
+            column = row.reshape(3, 1)
+            Prf_K = ((1 + self.PR_eps) * (column.T @ column) -
+                     self.PR_K_max ** 2) / (self.PR_eps * self.PR_K_max ** 2)
+            PRfgrad_K = 2 * (1 + self.PR_eps) * column / \
+                        (self.PR_eps * self.PR_K_max ** 2)
+            y_K_col = y_K[:, i].reshape(3, 1)
+
+            if Prf_K > 0.0 and y_K_col.T @ self.Gamma_K @ PRfgrad_K > 0.0:
+                print("robustification active")
+                K_hat_transpose_dot[:, i] = (mu * self.Gamma_K @ (y_K_col - (
+                        PRfgrad_K @ PRfgrad_K.T @ self.Gamma_K @ y_K_col @ Prf_K) / (
+                                                                              PRfgrad_K.T @ self.Gamma_K @ PRfgrad_K))).reshape(
+                    3, )
+            else:
+                K_hat_transpose_dot[:, i] = (mu *
+                                             self.Gamma_K @ y_K_col).reshape(3, )
+            i += 1
+        K_hat_transpose = self.K_hat.T + self.Ts * K_hat_transpose_dot
+        self.K_hat = K_hat_transpose.T
+
+        # Projection operator b
+        PRf_b = ((1+self.PR_eps)*(self.b_hat.T@self.b_hat) -
+                 self.PR_b_max**2)/(self.PR_eps*self.PR_b_max**2)
+        PRfgrad_b = 2*(1+self.PR_eps)*self.b_hat / \
+            (self.PR_eps*self.PR_b_max**2)
+        y_b = (np.linalg.inv(self.P_ep) @ np.linalg.inv(
+            self.M0)).T @ self.e
+        if PRf_b > 0.0 and y_b.T@self.Gamma_b@PRfgrad_b > 0.0:
+            print("b robustification active")
+
+            b_hat_dot = mu*self.Gamma_b@(y_b - (PRfgrad_b@PRfgrad_b.T @
+                                         self.Gamma_b@y_b@PRf_b)/(PRfgrad_b.T@self.Gamma_b@PRfgrad_b))
+        else:
+            b_hat_dot = mu*self.Gamma_b@y_b
+        self.b_hat = self.b_hat+self.Ts*b_hat_dot
 
         return tau
     
@@ -488,7 +558,9 @@ if __name__ == '__main__':
     tracking_method = 0 # 0: baseline, 1: MRAC
     # initialize reference model
     controller = Controller(dt=dt)
-
+    CBF_mode = 1 # 0: straightline with horizontal CBF, 1: ellipse with oblique CBF line
+    
+    
     controller.q = np.array([[-2.92,1.5]]).T
     controller.c = -8.33
     t0 = rospy.get_time()

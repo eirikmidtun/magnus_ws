@@ -173,7 +173,7 @@ class PATH:
             self.test = "stop"
             rospy.logwarn_once("stop")
 
-        
+
 
 
     def publish(self):

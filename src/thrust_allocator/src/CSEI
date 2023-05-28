@@ -123,7 +123,7 @@ class ThrustAlloc(object):
         # publish messsage
         self.u_pub.publish(self.u_msg)
 
-        #self.tau_pub.publish(self.tau_msg) TODO: Remove when testing
+        self.tau_pub.publish(self.tau_msg)
 
 
 if __name__ == '__main__':
