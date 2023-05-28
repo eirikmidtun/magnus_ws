@@ -1,0 +1,9 @@
+<launch>
+    <node name="thrust_alloc" pkg = "thrust_allocator" type="CSEI" />
+    <!--node name="vel_joystick" pkg = "controller" type="joystick_vel_ctrl" /-->
+    <node name="path_gen" pkg = "guidance" type="path_generation.py"/>
+    <!--node name="observer" pkg = "observer" type="smallGain_CSEI"/-->
+    <!--node name="joy" pkg = "joy" type="joy_node"/-->
+    <node name="vel_controller" pkg = "controller" type="velMRAC_ctrl_NR" />
+    <node name="CSE_simulator" pkg = "simulator_CSE" type="CSEI.py" />
+</launch>
