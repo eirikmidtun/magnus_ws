@@ -394,7 +394,6 @@ class Controller (object):
         gamma = 0.2 #Fungerende gamma
         gamma = 0.25
         gamma = 0.2
-        gamma = 2
         alpha = gamma * B
         a = alpha
         b = -self.q.T @ Rzyx2D(psi)
@@ -463,19 +462,17 @@ if __name__ == '__main__':
 
 
     while not rospy.is_shutdown():
-        #if t0-rospy.get_time() > 40:
-        #    controller.eta_r = np.array([[1.5], [1], [0]])
-        #if t0-rospy.get_time() > 100:
-        #    controller.eta_r = np.array([[3], [-1], [0]])
+        if t0-rospy.get_time() > 40:
+            controller.eta_r = np.array([[1.5], [1], [0]])
+        if t0-rospy.get_time() > 100:
+            controller.eta_r = np.array([[3], [-1], [0]])
         
-        controller.nu_cmd = np.array([[0.05], [0], [0]])
+
         
-        controller.CBF_line2()
-        #controller.find_des_vel()
+        #controller.CBF_line2()
+        controller.find_des_vel()
         # calculate command forces
         controller.update(tracking_method)
-        print("nu_cmd:", controller.nu_cmd)
-        print("tau:", controller.tau)
 
         # publish command forces
         controller.publishTau()

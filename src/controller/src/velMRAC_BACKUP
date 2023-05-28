@@ -160,30 +160,10 @@ class Controller (object):
         self.K_LQR1 = np.linalg.inv(self.Rk1) @ self.B1.T @ PK1  # 6x3
         self.Ki = self.K_LQR1[:, [0, 1, 2]]  # 3x3
         self.Kp = self.K_LQR1[:, [3, 4, 5]]  # 3x3
-        self.xi = np.zeros((3,1))
+        self.xi = np.zeros()
 
 
         self.active = 0
-
-
-        ### CBF ###
-        self.w = np.array([[0.0, 0.0]]).T
-        self.w_cmd = np.array([[0.0, 0.0]]).T
-        self.w_old = np.array([[0.0, 0.0]]).T
-        self.alpha = 0.0
-        self.active = 0
-        self.Kappa = np.zeros((2, 1))
-        self.B = None
-        self.B_dot = None
-        self.B_dot_dw = None
-        self.obstacles = None
-        self.alpha = None
-        self.x_prev = np.zeros(2)
-        self.q = np.zeros((2, 1))
-        self.c = 0.0
-        self.constraint_active = False
-        self.w_psi_d = 0.0
-        self.old_w_psi_d = 0.0
 
 
 
@@ -278,10 +258,7 @@ class Controller (object):
             Kp = np.diag([0.15, 0.20, 0.25]) #TODO: RIKTIG KP FOR 1
             Kp = np.diag([0.15, 0.20, 0.25])
             Kp = np.diag([0.05, 0.2, 0.2]) #Funker greit på både 1 og 2
-            Kp = np.diag([0.05, 0.2, 0.25]) #startverdier
-
-            Kp = np.diag([0.01, 0.002, 0.05])
-
+            Kp = np.diag([0.05, 0.2, 0.25])
 
         # Kp = np.diag([0.03, 0.1, 0.1])
         # Kp = np.diag([0.03, 0.07, 0.15])
@@ -371,78 +348,6 @@ class Controller (object):
         self.b_hat = self.b_hat + self.Ts * b_hat_dot
 
         return tau
-    
-    def CBF_line2(self):
-        p = np.array([[self.eta[0][0], self.eta[1][0]]]).T
-        psi = self.eta[2][0]
-        self.w = self.nu[0:2]
-        # self.w = self.nu_cmd[0:2]
-        w_d = self.nu_nom[0:2]  # TODO: Fjern
-        w = self.w
-
-        B = self.c - self.q.T @ p
-        # print("B:", B, "eta_r:", self.eta_r[0], self.eta_r[1], "eta:", self.eta[0], self.eta[1])
-        print("self.w:", self.w, self.w.shape)
-        B_dot = -self.q.T @ Rzyx2D(psi) @ self.w
-
-
-        # print("B:", B)
-        # print("B_dot:", B_dot)
-        gamma = 0.1
-        gamma = 2
-        #gamma = 4
-        gamma = 0.2 #Fungerende gamma
-        gamma = 0.25
-        gamma = 0.2
-        gamma = 2
-        alpha = gamma * B
-        a = alpha
-        b = -self.q.T @ Rzyx2D(psi)
-        #P = np.array([[20.0, -1.5], [-1.5, 0.5]])
-        P = np.array([[10.0, 0.0], [0.0, 1.0]])
-        #P = np.array([[1000.0, 0.0], [0.0, 1.0]])
-
-
-
-        boundary_normal = np.array([self.q[1], -self.q[0]])  # Compute the outward normal to the boundary
-        boundary_normal = boundary_normal / np.linalg.norm(boundary_normal)  # Normalize the boundary normal
-
-        # Compute the dot product between nu_cmd and the boundary normal
-        direction_penalty = np.dot(self.nu_cmd[0:2].T, boundary_normal)
-
-        # Modify P based on the direction penalty
-        # P = np.array([[10.0 + direction_penalty[0][0], 0.0], [0.0, 100.0 + direction_penalty[0][0]]])
-
-
-        if B_dot <= -alpha:
-
-            #w_safe = w - (a + b @ w) / (b @ np.linalg.inv(P) @ b.T) * np.linalg.inv(P) @ b.T
-            w_nom = self.nu_nom[0:2]
-            w_safe = w_nom - (a+b@w_nom)/(b@np.linalg.inv(P)@b.T)*np.linalg.inv(P)@b.T
-            w_safe = np.array([[w_safe[0][0], w_safe[1][0]]]).T
-
-
-            #TODO: Stikker av boundarien tidigere med følgende grenser:
-            #if w_safe[0] > 0.065:
-            #    w_safe[0] = 0.065
-            #elif w_safe[0] < 0:
-            #    w_safe[0] = 0
-            #if w_safe[1] > 0.05:
-            #    w_safe[1] = 0.05
-            #elif w_safe[1] < -0.05:
-            #    w_safe[1] = -0.05
-
-
-            self.w_cmd = w_safe
-            limited_w = rate_limiter(self.w_cmd, self.w_old, 0.0005)
-            #self.w_cmd = limited_w
-            #self.w_cmd = 0.9*self.w_old + 0.1*w_safe
-            self.w_old = self.w_cmd
-            self.active = 1
-
-        else:
-            self.active = 0
-
 
 
 if __name__ == '__main__':
@@ -455,27 +360,13 @@ if __name__ == '__main__':
     # initialize reference model
     controller = Controller(dt=dt)
 
-    controller.q = np.array([[1,0]]).T
-    controller.c = 4
-    t0 = rospy.get_time()
-    controller.eta_r = np.array([[0], [0], [0]])
-    controller.eta_r_dt = np.array([[0], [0], [0]])
-
-
     while not rospy.is_shutdown():
-        #if t0-rospy.get_time() > 40:
-        #    controller.eta_r = np.array([[1.5], [1], [0]])
-        #if t0-rospy.get_time() > 100:
-        #    controller.eta_r = np.array([[3], [-1], [0]])
+        controller.eta_r = np.array([[1], [-1], [0]])
+        controller.eta_r_dt = np.array([[0], [0], [0]])
         
-        controller.nu_cmd = np.array([[0.05], [0], [0]])
-        
-        controller.CBF_line2()
-        #controller.find_des_vel()
+        controller.find_des_vel()
         # calculate command forces
         controller.update(tracking_method)
-        print("nu_cmd:", controller.nu_cmd)
-        print("tau:", controller.tau)
 
         # publish command forces
         controller.publishTau()

@@ -95,7 +95,7 @@ class Measurements(object):
         self.eta = np.array([eta_x, eta_y, eta_psi])
         self.nu = np.array([nu_x, nu_y, nu_psi])
 
-        self.rotate()
+        #self.rotate()
 
     def check_message_time(self):
         time_diff = datetime.now() - self.last_msg_time
