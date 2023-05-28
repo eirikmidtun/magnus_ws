@@ -8,6 +8,7 @@ from scipy import linalg
 from MCSimPython.control.basic import PID
 
 from std_msgs.msg import Float64MultiArray
+from nav_msgs.msg import Odometry
 
 
 vessel_name = "CSEI"
@@ -64,8 +65,7 @@ class Controller (object):
         self.nu = np.zeros((3,1))   # Velocity [surge, sway, yaw]
 
         self.eta_d = np.zeros((3,1))  # Desired pose, attitude [surge, sway, yaw]
-        self.eta_r = np.zeros((3,1))
-        self.nu_d = np.zeros((3,1))   # Desired velocity [surge, sway, yaw]
+        self.eta_d_dt = np.zeros((3,1))
 
         # CSE parameters
         X_u = -0.6555
@@ -190,6 +190,9 @@ class Controller (object):
         # Publishers/Subscribers
         self.odom_sub = rospy.Subscriber(
             f"/{vessel_name}/observer_states_smallGain", Float64MultiArray, self.observerCallback, queue_size=1)  # Odometry subscriber
+        
+        
+        self.odom_sim = rospy.Subscriber(f"/CSEI/odom_sim", Odometry, self.odomCallback, queue_size=1)  # Odometry subscriber when simulating
         # Desired state subscriber
         self.desiredState_sub = rospy.Subscriber(
             f"/{vessel_name}/reference", Float64MultiArray, self.referenceCallback, queue_size=1)
@@ -218,13 +221,31 @@ class Controller (object):
         """
         self.eta = np.array([[msg.data[0]], [msg.data[1]], [msg.data[2]]])
         self.nu = np.array([[msg.data[3]], [msg.data[4]], [msg.data[5]]])
+
+    def odomCallback(self, msg):
+        """
+            Callback function for odometry message when simulating. Updating position and attitude of vessel.
+        """
+        print("msg.pose.pose.position.x", msg.pose.pose.position.x)
+        self.eta[0][0] = msg.pose.pose.position.x
+        self.eta[1][0] = msg.pose.pose.position.y
+        w = msg.pose.pose.orientation.w
+        x = msg.pose.pose.orientation.x
+        y = msg.pose.pose.orientation.y
+        z = msg.pose.pose.orientation.z
+        self.eta[2][0] = np.arctan2(
+            2*(w*z+x*y), 1-2*(y**2+z**2))  # quaternion to euler
+
+        self.nu[0] = msg.twist.twist.linear.x
+        self.nu[1] = msg.twist.twist.linear.y
+        self.nu[2] = msg.twist.twist.angular.z
         
     def referenceCallback(self, msg):
         """
             Callback function for desired state message. Updating desired position/attitude and linear/angular velocity of vessel.
         """
-        self.eta_d = np.array(msg.data[0:3])
-        self.eta_d_dt = np.array(msg.data[3:6])
+        self.eta_d = np.array([msg.data[0:3]]).T
+        self.eta_d_dt = np.array([msg.data[3:6]]).T
 
     def nucmdCallback(self, msg):
         """
@@ -270,25 +291,33 @@ class Controller (object):
 
     def find_des_vel(self):
         # self.eta[2][0] = pipi2inf(self.eta[2], self.psi_prev)
-        # self.eta_r[2] = pipi2inf(self.eta_r[2], self.psi_d_prev)
+        # self.eta_d[2] = pipi2inf(self.eta_d[2], self.psi_d_prev)
         psi = self.eta[2][0]
         if self.active == 0:
-            distance_error = np.sqrt((self.eta_r[0] - self.eta[0][0]) ** 2 + (self.eta_r[1] - self.eta[1][0]) ** 2)
+            distance_error = np.sqrt((self.eta_d[0] - self.eta[0][0]) ** 2 + (self.eta_d[1] - self.eta[1][0]) ** 2)
 
             Kp = np.diag([0.15, 0.20, 0.25]) #TODO: RIKTIG KP FOR 1
             Kp = np.diag([0.15, 0.20, 0.25])
             Kp = np.diag([0.05, 0.2, 0.2]) #Funker greit på både 1 og 2
-            Kp = np.diag([0.05, 0.2, 0.25]) #startverdier
+            Kp = np.diag([0.05, 0.002, 0.0]) #startverdier
 
-            Kp = np.diag([0.01, 0.002, 0.05])
+            Kp = np.diag([0.025, 0.2, 0.2])
+
+            #Kp = np.diag([0.00000001, 0.002, 0.05])
+
 
 
         # Kp = np.diag([0.03, 0.1, 0.1])
         # Kp = np.diag([0.03, 0.07, 0.15])
 
-            pos_error = self.eta - self.eta_r
-            pos_error[2] = shortest_rotation(self.eta_r[2], self.eta[2])
-            nu_nom = -Kp * Rzyx(psi).T @ (pos_error) + Rzyx(psi).T @ self.eta_r_dt
+            pos_error = self.eta - self.eta_d
+            print("self.eta:", self.eta)
+            print("self.eta_d:", self.eta_d)
+            print("pos_error:", pos_error)
+            pos_error[2] = shortest_rotation(self.eta_d[2], self.eta[2])
+            print("pos_error:", pos_error)
+            nu_nom = -Kp * Rzyx(psi).T @ (pos_error) + Rzyx(psi).T @ self.eta_d_dt
+            print("nu_nom:", nu_nom)
             self.nu_nom = nu_nom
             self.nu_cmd = nu_nom
 
@@ -334,7 +363,6 @@ class Controller (object):
             self.nu_cmd_old = self.nu_cmd
             self.nu_cmd_dot_old = self.nu_cmd_dot
 
-            print("nu_cmd:", self.nu_cmd)
 
 
 
@@ -381,7 +409,7 @@ class Controller (object):
         w = self.w
 
         B = self.c - self.q.T @ p
-        # print("B:", B, "eta_r:", self.eta_r[0], self.eta_r[1], "eta:", self.eta[0], self.eta[1])
+        # print("B:", B, "eta_d:", self.eta_d[0], self.eta_d[1], "eta:", self.eta[0], self.eta[1])
         print("self.w:", self.w, self.w.shape)
         B_dot = -self.q.T @ Rzyx2D(psi) @ self.w
 
@@ -458,25 +486,22 @@ if __name__ == '__main__':
     controller.q = np.array([[1,0]]).T
     controller.c = 4
     t0 = rospy.get_time()
-    controller.eta_r = np.array([[0], [0], [0]])
-    controller.eta_r_dt = np.array([[0], [0], [0]])
+    #controller.eta_d = np.array([[0], [0], [0]])
+    #controller.eta_d_dt = np.array([[0], [0], [0]])
 
 
     while not rospy.is_shutdown():
         #if t0-rospy.get_time() > 40:
-        #    controller.eta_r = np.array([[1.5], [1], [0]])
+        #    controller.eta_d = np.array([[1.5], [1], [0]])
         #if t0-rospy.get_time() > 100:
-        #    controller.eta_r = np.array([[3], [-1], [0]])
+        #    controller.eta_d = np.array([[3], [-1], [0]])
         
-        controller.nu_cmd = np.array([[0.05], [0], [0]])
+        #controller.nu_cmd = np.array([[0.05], [0], [0]])
         
-        controller.CBF_line2()
-        #controller.find_des_vel()
+        #controller.CBF_line2()
+        controller.find_des_vel()
         # calculate command forces
         controller.update(tracking_method)
-        print("nu_cmd:", controller.nu_cmd)
-        print("tau:", controller.tau)
-
         # publish command forces
         controller.publishTau()
 

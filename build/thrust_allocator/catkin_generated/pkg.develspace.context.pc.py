@@ -4,5 +4,5 @@ PROJECT_PKG_CONFIG_INCLUDE_DIRS = "".split(';') if "" != "" else []
 PROJECT_CATKIN_DEPENDS = "rospy;std_msgs".replace(';', ' ')
 PKG_CONFIG_LIBRARIES_WITH_PREFIX = "-lthrust_allocator".split(';') if "-lthrust_allocator" != "" else []
 PROJECT_NAME = "thrust_allocator"
-PROJECT_SPACE_DIR = "/home/dplab6/magnus_ws/devel"
+PROJECT_SPACE_DIR = "/home/mkvebaek/magnus_ws/devel"
 PROJECT_VERSION = "0.0.0"

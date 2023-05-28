@@ -1,8 +1,8 @@
-# Install script for directory: /home/dplab6/magnus_ws/src/launch
+# Install script for directory: /home/mkvebaek/magnus_ws/src/launch
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/home/dplab6/magnus_ws/install")
+  set(CMAKE_INSTALL_PREFIX "/home/mkvebaek/magnus_ws/install")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -38,17 +38,17 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/dplab6/magnus_ws/build/launch/catkin_generated/installspace/launch.pc")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/mkvebaek/magnus_ws/build/launch/catkin_generated/installspace/launch.pc")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/launch/cmake" TYPE FILE FILES
-    "/home/dplab6/magnus_ws/build/launch/catkin_generated/installspace/launchConfig.cmake"
-    "/home/dplab6/magnus_ws/build/launch/catkin_generated/installspace/launchConfig-version.cmake"
+    "/home/mkvebaek/magnus_ws/build/launch/catkin_generated/installspace/launchConfig.cmake"
+    "/home/mkvebaek/magnus_ws/build/launch/catkin_generated/installspace/launchConfig-version.cmake"
     )
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/launch" TYPE FILE FILES "/home/dplab6/magnus_ws/src/launch/package.xml")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/launch" TYPE FILE FILES "/home/mkvebaek/magnus_ws/src/launch/package.xml")
 endif()
 

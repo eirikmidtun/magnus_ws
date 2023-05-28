@@ -43,10 +43,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/dplab6/magnus_ws/src
+CMAKE_SOURCE_DIR = /home/mkvebaek/magnus_ws/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/dplab6/magnus_ws/build
+CMAKE_BINARY_DIR = /home/mkvebaek/magnus_ws/build
 
 # Utility rule file for _catkin_empty_exported_target.
 
@@ -63,10 +63,10 @@ launch/CMakeFiles/_catkin_empty_exported_target.dir/build: _catkin_empty_exporte
 .PHONY : launch/CMakeFiles/_catkin_empty_exported_target.dir/build
 
 launch/CMakeFiles/_catkin_empty_exported_target.dir/clean:
-	cd /home/dplab6/magnus_ws/build/launch && $(CMAKE_COMMAND) -P CMakeFiles/_catkin_empty_exported_target.dir/cmake_clean.cmake
+	cd /home/mkvebaek/magnus_ws/build/launch && $(CMAKE_COMMAND) -P CMakeFiles/_catkin_empty_exported_target.dir/cmake_clean.cmake
 .PHONY : launch/CMakeFiles/_catkin_empty_exported_target.dir/clean
 
 launch/CMakeFiles/_catkin_empty_exported_target.dir/depend:
-	cd /home/dplab6/magnus_ws/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/dplab6/magnus_ws/src /home/dplab6/magnus_ws/src/launch /home/dplab6/magnus_ws/build /home/dplab6/magnus_ws/build/launch /home/dplab6/magnus_ws/build/launch/CMakeFiles/_catkin_empty_exported_target.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/mkvebaek/magnus_ws/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/mkvebaek/magnus_ws/src /home/mkvebaek/magnus_ws/src/launch /home/mkvebaek/magnus_ws/build /home/mkvebaek/magnus_ws/build/launch /home/mkvebaek/magnus_ws/build/launch/CMakeFiles/_catkin_empty_exported_target.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : launch/CMakeFiles/_catkin_empty_exported_target.dir/depend
 

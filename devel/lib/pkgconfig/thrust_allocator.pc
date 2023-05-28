@@ -1,4 +1,4 @@
-prefix=/home/dplab6/magnus_ws/devel
+prefix=/home/mkvebaek/magnus_ws/devel
 
 Name: thrust_allocator
 Description: Description of thrust_allocator

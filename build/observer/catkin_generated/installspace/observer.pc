@@ -1,4 +1,4 @@
-prefix=/home/dplab6/magnus_ws/install
+prefix=/home/mkvebaek/magnus_ws/install
 
 Name: observer
 Description: Description of observer

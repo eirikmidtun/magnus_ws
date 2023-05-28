@@ -12,18 +12,18 @@ def rad2pipi(x):  # Maps angle from (-inf, inf) to [-pi, pi)
 
 class PATH:
     def __init__(self):
-        self.s = 0.5 
+         
         self.eta_d = np.zeros(3)
         self.eta_d_dt = np.zeros(3)
             #eta_d_dt2 = np.zeros(3)
 
-        self.pub = rospy.Publisher(f"/{vessel_name}/guidance", Float64MultiArray, queue_size=1)
+        self.pub = rospy.Publisher(f"/{vessel_name}/reference", Float64MultiArray, queue_size=1)
         self.pathgen_msg = Float64MultiArray()
 
 
     def nom_straightline_path(self):
         s = self.s
-        U_ref = 0.1
+        U_ref = 0.05
         startP = [1, 0]
         endP = [7,0]
         eps = 0.00001
@@ -83,11 +83,11 @@ class PATH:
         """
         Generates desired eta in an ellipsoidal path
         """
-        U_ref = 0.1
+        U_ref = 0.05
         s = self.s
-        rx = 1.5
-        ry = 1.5
-        offset = np.array([0, 1.5])
+        rx = 0.75
+        ry = 0.75
+        offset = np.array([2.25, 0.65])
 
         psi_s = math.pi / 2
         eta_d = np.zeros(3)
@@ -173,14 +173,32 @@ if __name__ == '__main__':
     r = rospy.Rate(100)
     # Initialize
     y = PATH()
+    path_type = 1 # 0 for straight line, 1 for ellipsoidal
+    if path_type == 0:
+        y.s = 0
+    if path_type == 1:
+        y.s = 0.5
 
     y.t0 = rospy.get_time()
     while not rospy.is_shutdown():
-        t = rospy.get_time() - y.t0
-        print("t:", t)
+        t = rospy.get_time()
 
-        y.nom_straightline_path()
-        #y.nom_ellipsoidal_path()
+        if path_type == 0:
+            y.nom_straightline_path()
+        if path_type == 1:
+            y.nom_ellipsoidal_path()
+
+        if t-y.t0 < 80 and path_type == 1:
+            y.s = 0.5
+            y.eta_d = [2.25, -0.1, 0]
+            y.eta_d_dt = np.zeros(3)
+
+        if t-y.t0 < 80 and path_type == 0:
+            y.s = 0.5
+            y.eta_d = [2.0, 0.0, 0]
+            y.eta_d_dt = np.zeros(3)
+
+
         # Publish message
         y.publish()
 

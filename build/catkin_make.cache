@@ -1,2 +1,2 @@
-controller:guidance:launch:observer:thrust_allocator
--DCATKIN_DEVEL_PREFIX=/home/dplab6/magnus_ws/devel -DCMAKE_INSTALL_PREFIX=/home/dplab6/magnus_ws/install -G Unix Makefiles
+common_tools:controller:guidance:launch:observer:simulator_CSE:thrust_allocator
+-DCATKIN_DEVEL_PREFIX=/home/mkvebaek/magnus_ws/devel -DCMAKE_INSTALL_PREFIX=/home/mkvebaek/magnus_ws/install -G Unix Makefiles
