@@ -1,8 +1,0 @@
-<launch>
-    <node name="thrust_alloc" pkg = "thrust_allocator" type="CSEI" />
-    <!--node name="joystick" pkg = "controller" type="joystick_ctrl" /-->
-    <node name="measurements" pkg = "guidance" type="convert_measurements.py"/>
-    <node name="observer" pkg = "observer" type="smallGain_CSEI"/>
-    <!--node name="joy" pkg = "joy" type="joy_node"/-->
-    <node name="vel_controller" pkg = "controller" type="velMRAC_ctrl_NR" />
-</launch>

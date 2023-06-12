@@ -1,8 +1,0 @@
-prefix=/home/dplab6/magnus_ws/install
-
-Name: simulator_CSE
-Description: Description of simulator_CSE
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

@@ -9,6 +9,8 @@ from nav_msgs.msg import Odometry
 from MCSimPython.utils import Rx, pipi, Rz
 
 import sys
+vessel_name = "CSEI"
+
 
 def quat2eul(w, x, y, z):
     """
@@ -117,7 +119,6 @@ class Measurements(object):
         
 
 if __name__ == '__main__':
-    vessel_name = "CSEI"
     rospy.init_node(f"{vessel_name}_measurements")
     rospy.loginfo(f"INITIALIZING {vessel_name} measurement NODE")
     r = rospy.Rate(100)

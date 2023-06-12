@@ -1,0 +1,9 @@
+<launch>
+    <node name="thrust_alloc" pkg = "thrust_allocator" type="CSV" />
+    <node name="joystick" pkg = "controller" type="joystick_ctrl" />
+    <node name="measurements" pkg = "guidance" type="convert_measurements.py"/>
+    <node name="observer" pkg = "observer" type="CSV"/>
+    <node name="joy" pkg = "joy" type="joy_node"/>
+    <node name="desiredpos" pkg = "guidance" type="path_generation.py"/>
+    <include file="/home/dplab6/magnus_ws/src/motion_capture_system/mocap_qualisys/launch/qualisys.launch"/>
+</launch>

@@ -29,11 +29,9 @@ class PATH:
     def nom_straightline_path(self):
         s = self.s
         U_ref = 0.05
-        startP = [1, 0]
+        startP = [2, 0]
         endP = [7,0]
         eps = 0.00001
-        startP = np.array([0, 0])
-        endP = np.array([10, 0])
         # eta_d and its 1st and 2nd derivatives wrt s
         eta_d = np.zeros(3)
         eta_ds = np.zeros(3)
@@ -72,14 +70,7 @@ class PATH:
 
         self.eta_d = eta_d
         self.eta_d_dt = eta_d_dt
-        """
-        eta_d = np.array([eta_d]).T
-        eta_d_dt = np.array([eta_d_dt]).T
-        #eta_d_dt2 = np.array([eta_d_dt2]).T
-            y.eta_d = [2.0, 0.0, 0]
-        eta_ds = np.array([eta_ds]).T
-        #eta_ds2 = np.array([eta_ds2]).T
-        """
+
         # Integrate s
         self.s = s + 0.01 * s_dot
 
@@ -112,20 +103,11 @@ class PATH:
         eta_d[2] = math.atan2(eta_ds[1], eta_ds[0])
         eta_ds[2] = (-4 * math.pi ** 2 * ry * math.sin(2 * math.pi * s + psi_s) * eta_d[0] - eta_ds[
             1] * -4 * math.pi ** 2 * rx * math.cos(2 * math.pi * s + psi_s)) / (eta_ds[0] ** 2 + eta_ds[1] ** 2 + eps)
-        # eta_ds[2] = (2*rx*ry*math.pi)/(ry**2 + rx**2*math.sin(2*math.pi*s + psi_s)**2 - ry**2*math.cos(2*math.pi*s + psi_s)**2 + eps)
 
         # Reference eta
         eta_ds2[0] = -4 * math.pi ** 2 * rx * math.cos(2 * math.pi * s + psi_s)
         eta_ds2[1] = -4 * math.pi ** 2 * ry * math.sin(2 * math.pi * s + psi_s)
 
-        #eta_ds3[0] = 8 * math.pi ** 3 * rx * math.sin(2 * math.pi * s + psi_s)
-        #eta_ds3[1] = -8 * math.pi ** 3 * ry * math.cos(2 * math.pi * s + psi_s)
-
-        #eta_ds2[2] = (eta_ds[0] ** 3 * eta_ds3[1] - eta_ds[1] ** 3 * eta_ds3[0] + 2 * eta_ds[0] * eta_ds[1] * eta_ds2[
-        #    0] ** 2 - 2 * eta_ds[0] * eta_ds[1] * eta_ds2[1] ** 2 - eta_ds[0] ** 2 * eta_ds[1] * eta_ds3[0] - 2 *
-        #                eta_ds[
-        #                    0] ** 2 * eta_ds2[0] * eta_ds2[1] + 2 * eta_ds[1] ** 2 * eta_ds2[0] * eta_ds2[1] + eta_ds[0] *
-        #                eta_ds[1] ** 2 * eta_ds3[1]) / (eta_ds[0] ** 2 + eta_ds[1] ** 2 + eps) ** 2
 
         # Ramp for U_ref to avoid big initial acceleration
         t_ramp = 2  # duration of the ramp
@@ -138,32 +120,18 @@ class PATH:
 
         v_s = np.abs(U_ref) / math.sqrt(eta_ds[0] ** 2 + eta_ds[1] ** 2 + eps)
         s_dot = v_s
-        #vs_ds = U_ref * (eta_ds2[0] * eta_ds[0] + eta_ds2[1] * eta_ds[1]) / (
-        #        (eta_ds[0] ** 2 + eta_ds[1] ** 2) ** (3 / 2))
 
-        #s_dt2 = vs_ds * s_dot
         # Calculate the 1st and 2nd time derivatives of eta_d
         eta_d_dt = np.zeros(3)
-        #eta_d_dt2 = np.zeros(3)
         eta_d_dt = eta_ds * s_dot
-        #eta_d_dt2 = eta_ds2 * s_dot ** 2 + eta_ds * s_dt2
 
 
         self.eta_d = eta_d
         self.eta_d_dt = eta_d_dt
-        """
-        eta_d = np.array([eta_d]).T
-        eta_d_dt = np.array([eta_d_dt]).T
-        #eta_d_dt2 = np.array([eta_d_dt2]).T
-        eta_ds = np.array([eta_ds]).T
-        #eta_ds2 = np.array([eta_ds2]).T
-        """
+
         # Integrate s
         self.s = s + 0.01 * s_dot
 
-
-
-        #return eta_d, eta_d_dt, eta_d_dt2, eta_ds, eta_ds2
 
     def joyCallback(self, msg):
         if msg.axes[10] == 1:
@@ -172,8 +140,9 @@ class PATH:
         elif msg.axes[10] == -1:
             self.test = "stop"
             rospy.logwarn_once("stop")
-
-
+        elif msg.axes[9] == 1:
+            self.test = "straightline"
+            rospy.logwarn_once("straightline")
 
 
     def publish(self):
@@ -196,7 +165,8 @@ if __name__ == '__main__':
         y.s = 0.5
 
     # start point
-    y.eta_d = [2.25, -0.1, 0]
+    y.eta_d = [2.25, -0.1, 0] #For ellipse
+    #y.eta_d = [2.0, 0, 0] #For straight line
 
     y.t0 = rospy.get_time()
     while not rospy.is_shutdown():

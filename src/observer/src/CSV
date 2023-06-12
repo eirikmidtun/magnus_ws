@@ -92,7 +92,7 @@ class Observer(object):
         # self.odom_sub = rospy.Subscriber(
         #    f"/qualisys/{vessel_name}/odom", Odometry, self.odomCallback, queue_size=1)  # Odometry subscriber
         self.meas_sub = rospy.Subscriber(
-            f"/{vessel_name}/measurements", Float64MultiArray, self.measurementsCallback, queue_size=1)
+            f"/CSJONNY/measurements", Float64MultiArray, self.measurementsCallback, queue_size=1)
         self.gains_sub = rospy.Subscriber(
             f"/{vessel_name}/gains", Float64MultiArray, self.gainsCallback, queue_size=1)
         

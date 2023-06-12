@@ -1,8 +1,0 @@
-prefix=/home/dplab6/magnus_ws/install
-
-Name: common_tools
-Description: Description of common_tools
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
