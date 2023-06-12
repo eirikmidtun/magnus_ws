@@ -102,16 +102,27 @@ class Controller (object):
         PK = linalg.solve_continuous_are(
             self.A, self.B, self.Qk, self.Rk)
         self.K_LQR = np.linalg.inv(self.Rk) @ self.B.T @ PK  # 3x3
+        
         self.K_LQR = np.array([[3.285, 0, 0], [0, 1.311, 0.036], [0, -0.027, 0.21]])
 
         self.K_LQR = np.diag([40,20,1])*0.01
+        self.K_LQR = np.diag([75,15,6]) #FUnker greit
+        self.K_LQR = np.diag([75,15,8]) 
         self.K_LQR = np.diag([25,7,6])
+
+        #self.K_LQR = 1.5*np.diag([20,12,10])
+        #self.K_LQR = np.diag([1,1,1])
+        
+
+        self.Gamma_K = np.eye(3)*0.1 * 1
+        self.Gamma_b = np.diag([1, 1, 0.01]) * 80
+        self.K_LQR = np.diag([50, 100, 3])
 
 
 
         # Reference model
         self.A_ref = self.A - self.B @ self.K_LQR  # 3x3
-        self.Q = np.diag([1, 1, 1])
+        self.Q = np.diag([1, 1, 0.1])*0.01
         self.P_ref = ct.lyap(self.A_ref, self.Q)  # 3x3
 
         # Parameters
@@ -121,20 +132,30 @@ class Controller (object):
         # Observer-like reference model parameters
         self.sigma = 1  # 1 to enable state feedback in reference filter, 0 to disable
         self.ep = 10
-        self.ep = 20
+        #self.ep = 20
+        self.ep = 200
+        #self.ep = 50 # Helt greit resultat
+        self.ep = 35
+        self.ep = 0.5
+        self.ep = 0.3
+        self.ep = 10*100
         self.Q_ep = self.Q + (self.ep + 1) / self.ep * np.identity(3)
         self.R_ep = self.ep / (self.ep + 1) * np.identity(3)
         self.P_ep = linalg.solve_continuous_are(
             self.A_ref, self.sigma * np.identity(3), self.Q_ep, self.R_ep)
-
         self.L_ep = self.sigma * self.P_ep @ np.linalg.inv(self.R_ep)
 
         # Update law parameters
+        """
         # self.Gamma_K = 25*10**(-3)*np.diag([1, 1, 1])
         self.Gamma_K = 25 * np.diag([1, 1, 1]) #startverdi
         self.Gamma_K = 30*15*25 * np.diag([1, 1, 1])
         self.Gamma_K = 10**(-5)*15*25 * np.diag([1, 1, 1])
-        self.Gamma_K = 0.03*np.diag([1, 1, 0.1])
+        self.Gamma_K = 50*5*2*5*2*0.03*np.diag([1, 0.1, 0.01])
+        self.Gamma_K = 5*2*5*2*0.03*np.diag([1, 0.1, 0.1])
+
+
+
 
 
         #self.Gamma_K = 10**-(5)*30*15*25 * np.diag([1, 1, 1])
@@ -142,8 +163,8 @@ class Controller (object):
         # self.Gamma_b = 50*10**(-3)*np.diag([1, 1, 1])
         self.Gamma_b = 50 * np.diag([1, 1, 1]) #startverdi
         self.Gamma_b = 30*15*50 * np.diag([1, 1, 1])
-        self.Gamma_b = 0.1*np.diag([1, 1, 1])
-        self.Gamma_L = 1 * np.diag([1, 1, 1])
+        self.Gamma_b = 20*2*2*2*0.1*np.diag([1, 1, 1])
+        """
         self.K_hat = np.zeros((3, 3))
         #self.K_hat = np.array([[-0.383, 0.005, 0], [0.004, -0.001, 0],
         #                    [-0.001, 0.006, -0.004]])
@@ -154,6 +175,17 @@ class Controller (object):
         #self.K_hat = np.array([[-5.4, 0.3, 2.1], [-0.73, 0.01, 0.29],[-0.05, 0.0715, 0.155]])
         self.b_hat = np.zeros((3, 1))
         #self.b_hat = np.array([[-0.005, 0, 0.023]]).T
+
+
+
+        ### MRAC Robustification variables ###
+        self.dz_delta = 0.5  # Dead-zone delta
+        self.dz_e0 = 0.5  # Dead-zone boundary layer
+        self.dz_enable = 1  # Dead-zone enable (1) or disable (0)
+        self.PR_eps = 1.0  # Projection activation layer
+        self.PR_b_max = 10 
+        self.PR_K_max = 10  
+
 
         ### BASELINE ###
         # State matrix etc.
@@ -202,12 +234,9 @@ class Controller (object):
         self.cbfstate = "CBF OFF" 
 
 
-
-
-
         # Publishers/Subscribers
         self.odom_sub = rospy.Subscriber(
-            f"/{vessel_name}/observer_states_smallGain", Float64MultiArray, self.observerCallback, queue_size=1)  # Odometry subscriber
+            f"/{vessel_name}/observer_states", Float64MultiArray, self.observerCallback, queue_size=1)  # Odometry subscriber
         
         self.nu_cmd_sub = rospy.Subscriber(f"/{vessel_name}/nu_cmd", Float64MultiArray, self.nucmdCallback, queue_size=1) #Sub to nu_cmd when controlling vel with joystick
         self.joy_sub = rospy.Subscriber(f"/joy", Joy, self.joyCallback, queue_size=1) #Sub to joystick
@@ -288,16 +317,12 @@ class Controller (object):
 
 
 
-    def update(self, tracking_method):
+    def update(self):
         """
             Calculate desired forces. [surge, sway, yaw]
         """
         # Calculate desired forces
-        #self.tau = self.pid.get_tau(self.eta, self.eta_d, self.nu, self.nu_d)   
-        if tracking_method == 0:
-            self.tau = self.baseline_velocity_tracking()
-        elif tracking_method == 1:
-            self.tau = self.MRAC_velocity_tracking_NR()
+        self.tau = self.MRAC_velocity_tracking_robust()
 
 
     def publishTau(self):
@@ -343,35 +368,13 @@ class Controller (object):
         if self.active == 0:
             distance_error = np.sqrt((self.eta_d[0] - self.eta[0][0]) ** 2 + (self.eta_d[1] - self.eta[1][0]) ** 2)
 
-            Kp = np.diag([0.15, 0.20, 0.25]) #TODO: RIKTIG KP FOR 1
-            Kp = np.diag([0.15, 0.20, 0.25])
-            Kp = np.diag([0.05, 0.2, 0.2]) #Funker greit på både 1 og 2
-            Kp = np.diag([0.05, 0.002, 0.0]) #startverdier
 
-            if tracking_method == 0:
-                Kp = np.diag([0.1, 1, 0.1])*4 #Greie verdier for baseline controller
-
-            if tracking_method == 1:
-                Kp = np.diag([0.35, 0.45, 0.2])*4
-                #Kp = np.diag([0.18, 0.45, 0.2])*4
-
-
-
-            #Kp = np.diag([0.00000001, 0.002, 0.05])
-
-
-
-            # Kp = np.diag([0.03, 0.1, 0.1])
-            # Kp = np.diag([0.03, 0.07, 0.15])
+            Kp = np.diag([0.1, 0.2, 0.35])*4 #Fra første
+            Kp = np.diag([0.1, 0.2, 0.35])
 
             pos_error = self.eta - self.eta_d
-            print("self.eta:", self.eta)
-            print("self.eta_d:", self.eta_d)
-            print("pos_error:", pos_error)
             pos_error[2] = shortest_rotation(self.eta_d[2], self.eta[2])
-            print("pos_error:", pos_error)
             nu_nom = -Kp * Rzyx(psi).T @ (pos_error) + Rzyx(psi).T @ self.eta_d_dt
-            print("nu_nom:", nu_nom)
             self.nu_nom = nu_nom
             self.nu_cmd = nu_nom
 
@@ -396,8 +399,8 @@ class Controller (object):
         self.nu_cmd_old = self.nu_cmd
 
         # TODO: kanskje endre tilbake, prøv litt
-        #if self.nu_cmd[0][0] > 0.12:
-        #    self.nu_cmd[0][0] = 0.12
+        if self.nu_cmd[0][0] and self.active == 1 > 0.05:
+            self.nu_cmd[0][0] = 0.05
         #elif self.nu_cmd[0][0] < 0:
         #    self.nu_cmd[0][0] = 0
         #if self.nu_cmd[1][0] > 0.05:
@@ -417,15 +420,8 @@ class Controller (object):
         self.nu_cmd_dot_old = self.nu_cmd_dot
 
 
-    def baseline_velocity_tracking(self):
-        self.e = self.nu - self.nu_cmd
-        self.xi = self.xi + self.Ts * self.e
 
-        tau = -self.Kp @ self.e - self.Ki @ self.xi + self.D0 @ self.nu_cmd + self.M0 @ self.nu_cmd_dot
-
-        return tau
-
-    def MRAC_velocity_tracking_NR(self):
+    def MRAC_velocity_tracking_robust(self):
         self.e = self.nu - self.nu_ref  # Note, self.e in the MRAC is not the same as self.e in baseline controller
         print("")
         print("self.nu    :", round(self.nu[0][0], 3), round(self.nu[1][0], 3), round(self.nu[2][0], 3) )
@@ -449,6 +445,7 @@ class Controller (object):
         b_hat_dot = self.Gamma_b @ (np.linalg.inv(self.P_ep) @ np.linalg.inv(
             self.M0)).T @ self.e 
         self.b_hat = self.b_hat + self.Ts * b_hat_dot
+
 
         return tau
     
@@ -526,11 +523,9 @@ class Controller (object):
 
 
 
-tracking_method = 1 # 0: baseline, 1: MRAC
-
 
 if __name__ == '__main__':
-    rospy.init_node("controller")
+    rospy.init_node("vel_controller")
     rospy.loginfo(f"INITIALIZING {vessel_name} PID CONTROLLER NODE")
     r = rospy.Rate(100)
     dt = 0.01  # Timestep corresponding to sampling frequency of 100 Hz
@@ -546,7 +541,6 @@ if __name__ == '__main__':
     #controller.eta_d = np.array([[0], [0], [0]])
     #controller.eta_d_dt = np.array([[0], [0], [0]])
 
-
     while not rospy.is_shutdown():
         #if t0-rospy.get_time() > 40:
         #    controller.eta_d = np.array([[1.5], [1], [0]])
@@ -558,13 +552,14 @@ if __name__ == '__main__':
             controller.CBF_line2()
         controller.find_des_vel()
         # calculate command forces
-        controller.update(tracking_method)
+        controller.update()
         # publish command forces
         controller.publishTau()
 
         # publish adaptive gains and nu_cmd/nu_refmodel
         controller.publishAdaptiveGains()
         controller.publishNuCmdNuRefmodel()
+
 
         r.sleep()
 

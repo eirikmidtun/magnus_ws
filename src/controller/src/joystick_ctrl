@@ -18,6 +18,7 @@ class JoyCtrl(object):
             f"/{vessel_name}/tau_cmd", Float64MultiArray, queue_size=1)
         self.joy_sub = rospy.Subscriber(
             "/joy", Joy, self.callback, queue_size=1)
+        
 
         # Messages
         self.tau_msg = Float64MultiArray()

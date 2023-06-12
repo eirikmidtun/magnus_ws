@@ -105,7 +105,11 @@ class Controller (object):
         self.K_LQR = np.array([[3.285, 0, 0], [0, 1.311, 0.036], [0, -0.027, 0.21]])
 
         self.K_LQR = np.diag([40,20,1])*0.01
+        self.K_LQR = np.diag([75,15,6]) #FUnker greit
+        self.K_LQR = np.diag([75,15,8]) 
         self.K_LQR = np.diag([25,7,6])
+        self.K_LQR = 1.5*np.diag([20,12,10])
+
 
 
 
@@ -121,12 +125,13 @@ class Controller (object):
         # Observer-like reference model parameters
         self.sigma = 1  # 1 to enable state feedback in reference filter, 0 to disable
         self.ep = 10
-        self.ep = 20
+        #self.ep = 20
+        self.ep = 200
+        self.ep = 50 # Helt greit resultat
         self.Q_ep = self.Q + (self.ep + 1) / self.ep * np.identity(3)
         self.R_ep = self.ep / (self.ep + 1) * np.identity(3)
         self.P_ep = linalg.solve_continuous_are(
             self.A_ref, self.sigma * np.identity(3), self.Q_ep, self.R_ep)
-
         self.L_ep = self.sigma * self.P_ep @ np.linalg.inv(self.R_ep)
 
         # Update law parameters
@@ -134,7 +139,7 @@ class Controller (object):
         self.Gamma_K = 25 * np.diag([1, 1, 1]) #startverdi
         self.Gamma_K = 30*15*25 * np.diag([1, 1, 1])
         self.Gamma_K = 10**(-5)*15*25 * np.diag([1, 1, 1])
-        self.Gamma_K = 0.03*np.diag([1, 1, 0.1])
+        self.Gamma_K = 0.03*np.diag([1, 0.1, 0.01])
 
 
         #self.Gamma_K = 10**-(5)*30*15*25 * np.diag([1, 1, 1])
@@ -143,7 +148,6 @@ class Controller (object):
         self.Gamma_b = 50 * np.diag([1, 1, 1]) #startverdi
         self.Gamma_b = 30*15*50 * np.diag([1, 1, 1])
         self.Gamma_b = 0.1*np.diag([1, 1, 1])
-        self.Gamma_L = 1 * np.diag([1, 1, 1])
         self.K_hat = np.zeros((3, 3))
         #self.K_hat = np.array([[-0.383, 0.005, 0], [0.004, -0.001, 0],
         #                    [-0.001, 0.006, -0.004]])
@@ -352,7 +356,11 @@ class Controller (object):
                 Kp = np.diag([0.1, 1, 0.1])*4 #Greie verdier for baseline controller
 
             if tracking_method == 1:
-                Kp = np.diag([0.35, 0.45, 0.2])*4
+                #Kp = np.diag([0.1, 1, 0.1])*4
+                Kp = np.diag([0.1, 0.5, 0.2])*4 #Fra første
+                Kp = np.diag([0.1, 0.1, 0.2])*4 #Fra første
+
+
                 #Kp = np.diag([0.18, 0.45, 0.2])*4
 
 
@@ -396,8 +404,8 @@ class Controller (object):
         self.nu_cmd_old = self.nu_cmd
 
         # TODO: kanskje endre tilbake, prøv litt
-        #if self.nu_cmd[0][0] > 0.12:
-        #    self.nu_cmd[0][0] = 0.12
+        if self.nu_cmd[0][0] and self.active == 1 > 0.05:
+            self.nu_cmd[0][0] = 0.05
         #elif self.nu_cmd[0][0] < 0:
         #    self.nu_cmd[0][0] = 0
         #if self.nu_cmd[1][0] > 0.05:
@@ -546,7 +554,6 @@ if __name__ == '__main__':
     #controller.eta_d = np.array([[0], [0], [0]])
     #controller.eta_d_dt = np.array([[0], [0], [0]])
 
-
     while not rospy.is_shutdown():
         #if t0-rospy.get_time() > 40:
         #    controller.eta_d = np.array([[1.5], [1], [0]])
@@ -565,6 +572,7 @@ if __name__ == '__main__':
         # publish adaptive gains and nu_cmd/nu_refmodel
         controller.publishAdaptiveGains()
         controller.publishNuCmdNuRefmodel()
+
 
         r.sleep()
 

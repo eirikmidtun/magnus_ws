@@ -34,13 +34,20 @@ class JoyCtrl(object):
         rStickX = -data.axes[2]
 
         # calculate command force form joystick input
-        self.nu_cmd[0] = lStickY*0.1
-        self.nu_cmd[1] = rStickX*0.03
+        self.nu_cmd[0] = lStickY*0.05
+        self.nu_cmd[1] = rStickX*0.02
         self.nu_cmd[2] = (L2 - R2)*0.5*0.15
 
         # Only publish when commands is given from the controller
         if np.linalg.norm(self.nu_cmd) != 0.01:
             self.publish()
+
+        if data.buttons[1] == 1: #X to activate CBF
+            self.cbfstate = "CBF ON"
+            rospy.logwarn(self.cbfstate)
+        elif data.buttons[0] == 1: #Square to deactivate CBF
+            self.cbfstate = "CBF OFF"
+            rospy.logwarn(self.cbfstate)
 
     def publish(self):
         """
